@@ -36,9 +36,7 @@ impl SignatureHandler {
      AES 解密
     */
     pub fn decrypt(data: &str) -> Result<String, JsValue> {
-        let data = general_purpose::STANDARD
-            .decode(&data)
-            .map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+        let data = general_purpose::STANDARD.decode(&data).map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
         let key = GenericArray::from_slice(KEY.as_bytes());
         let mut block = GenericArray::default();
         block[..data.len()].copy_from_slice(&data);
@@ -67,16 +65,11 @@ impl SignatureHandler {
         }
 
         // 检查 Base64 编码字符串是否包含非法字符
-        if data
-            .chars()
-            .any(|c| !(c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '='))
-        {
+        if data.chars().any(|c| !(c.is_ascii_alphanumeric() || c == '+' || c == '/' || c == '=')) {
             return Err(JsValue::from_str("Invalid Base64 encoded data"));
         }
 
-        let mut str = general_purpose::STANDARD
-            .decode(&data)
-            .map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+        let mut str = general_purpose::STANDARD.decode(&data).map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
         str.retain(|&c| c != 0); // 去除 \0 填充
         Ok(String::from_utf8(str).unwrap_or(String::new()))
     }

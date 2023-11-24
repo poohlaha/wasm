@@ -46,8 +46,7 @@ pub fn is_support_wasm() -> Result<bool, JsValue> {
         return Ok(false);
     }
 
-    let web_assembly_instantiate =
-        js_sys::Reflect::get(&web_assembly, &instance_name).map_err(|err| err)?;
+    let web_assembly_instantiate = js_sys::Reflect::get(&web_assembly, &instance_name).map_err(|err| err)?;
 
     if web_assembly_instantiate.is_function() {
         log("WebAssembly is supported");
@@ -61,14 +60,10 @@ pub fn is_support_wasm() -> Result<bool, JsValue> {
 fn get_window() -> Result<Window, JsValue> {
     let window = web_sys::window();
     if window.is_none() {
-        return Err(JsValue::from_str(
-            &WasmError::Error("get `window` error !".to_string()).to_string(),
-        ));
+        return Err(JsValue::from_str(&WasmError::Error("get `window` error !".to_string()).to_string()));
     }
 
-    let window = window.ok_or_else(|| {
-        JsValue::from_str(&WasmError::Error("get `window` error !".to_string()).to_string())
-    })?;
+    let window = window.ok_or_else(|| JsValue::from_str(&WasmError::Error("get `window` error !".to_string()).to_string()))?;
 
     Ok(window)
 }
@@ -78,14 +73,10 @@ fn get_document() -> Result<Document, JsValue> {
     let window = get_window()?;
     let document = window.document();
     if document.is_none() {
-        return Err(JsValue::from_str(
-            &WasmError::Error("get `document` error !".to_string()).to_string(),
-        ));
+        return Err(JsValue::from_str(&WasmError::Error("get `document` error !".to_string()).to_string()));
     }
 
-    let document = document.ok_or_else(|| {
-        JsValue::from_str(&WasmError::Error("get `document` error !".to_string()).to_string())
-    })?;
+    let document = document.ok_or_else(|| JsValue::from_str(&WasmError::Error("get `document` error !".to_string()).to_string()))?;
 
     Ok(document)
 }

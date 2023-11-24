@@ -26,13 +26,7 @@ impl UtilsHandler {
     }
 
     fn format(part: String) -> String {
-        let formatted = part.chars().enumerate().fold(String::new(), |acc, (i, c)| {
-            if i > 0 && i % 3 == 0 {
-                format!("{},{}", acc, c)
-            } else {
-                format!("{}{}", acc, c)
-            }
-        });
+        let formatted = part.chars().enumerate().fold(String::new(), |acc, (i, c)| if i > 0 && i % 3 == 0 { format!("{},{}", acc, c) } else { format!("{}{}", acc, c) });
 
         formatted.chars().rev().collect::<String>()
     }
@@ -61,11 +55,7 @@ impl UtilsHandler {
         let parts: Vec<&str> = str.split(".").collect();
         let integer_part = parts[0].chars().rev().collect::<String>();
         let formatted = Self::format(integer_part);
-        let result = if parts.len() > 1 {
-            format!("{}.{}", formatted, parts[1])
-        } else {
-            formatted
-        };
+        let result = if parts.len() > 1 { format!("{}.{}", formatted, parts[1]) } else { formatted };
 
         result
     }
@@ -76,14 +66,10 @@ impl UtilsHandler {
     pub fn deep_copy(value: JsValue) -> Result<JsValue, JsValue> {
         // array
         if let Some(arr) = value.dyn_ref::<Array>() {
-            let value = JSON::stringify(arr).map_err(|_| {
-                JsValue::from_str(&WasmError::Error("deep copy error !".to_string()).to_string())
-            })?;
+            let value = JSON::stringify(arr).map_err(|_| JsValue::from_str(&WasmError::Error("deep copy error !".to_string()).to_string()))?;
 
             let value = String::from(value);
-            let array = JSON::parse(&value).map_err(|_| {
-                JsValue::from_str(&WasmError::Error("deep copy error !".to_string()).to_string())
-            })?;
+            let array = JSON::parse(&value).map_err(|_| JsValue::from_str(&WasmError::Error("deep copy error !".to_string()).to_string()))?;
 
             return Ok(array);
         }
@@ -93,17 +79,9 @@ impl UtilsHandler {
             let object = Object::new();
             let keys = Object::keys(&obj);
             for key in keys.iter() {
-                let value = js_sys::Reflect::get(&obj, &key).map_err(|_| {
-                    JsValue::from_str(
-                        &WasmError::Error("deep copy error !".to_string()).to_string(),
-                    )
-                })?;
+                let value = js_sys::Reflect::get(&obj, &key).map_err(|_| JsValue::from_str(&WasmError::Error("deep copy error !".to_string()).to_string()))?;
 
-                js_sys::Reflect::set(&object, &key, &value).map_err(|_| {
-                    JsValue::from_str(
-                        &WasmError::Error("deep copy error !".to_string()).to_string(),
-                    )
-                })?;
+                js_sys::Reflect::set(&object, &key, &value).map_err(|_| JsValue::from_str(&WasmError::Error("deep copy error !".to_string()).to_string()))?;
             }
 
             return Ok(JsValue::from(object));
@@ -120,13 +98,7 @@ impl UtilsHandler {
             return String::new();
         }
 
-        let chars = str.chars().enumerate().fold(String::new(), |acc, (i, c)| {
-            if i == 0 {
-                format!("{}{}", acc, c.to_uppercase())
-            } else {
-                format!("{}{}", acc, c)
-            }
-        });
+        let chars = str.chars().enumerate().fold(String::new(), |acc, (i, c)| if i == 0 { format!("{}{}", acc, c.to_uppercase()) } else { format!("{}{}", acc, c) });
 
         return chars;
     }
@@ -161,9 +133,7 @@ impl UtilsHandler {
     */
     pub fn format_phone(phone: &str, spec: Option<char>) -> Result<String, JsValue> {
         if phone.len() < 11 {
-            return Err(JsValue::from_str(
-                &WasmError::Error("`phone` is invalid !".to_string()).to_string(),
-            ));
+            return Err(JsValue::from_str(&WasmError::Error("`phone` is invalid !".to_string()).to_string()));
         }
 
         let mut reg_spec = ' ';
@@ -172,14 +142,7 @@ impl UtilsHandler {
             reg_spec = spec;
         }
 
-        let format = format!(
-            "{}{}{}{}{}",
-            &phone[0..3],
-            reg_spec,
-            &phone[3..7],
-            reg_spec,
-            &phone[7..]
-        );
+        let format = format!("{}{}{}{}{}", &phone[0..3], reg_spec, &phone[3..7], reg_spec, &phone[7..]);
         Ok(format)
     }
 }

@@ -53,15 +53,9 @@ impl DateHandler {
         old_format: 原来的格式, 默认为 `%Y-%m-%d %H:%M:%S`
         format: 需要的格式, 默认为 `%Y-%m-%d`
     */
-    pub fn format(
-        date: &str,
-        format: Option<String>,
-        old_format: Option<String>,
-    ) -> Result<String, JsValue> {
+    pub fn format(date: &str, format: Option<String>, old_format: Option<String>) -> Result<String, JsValue> {
         if date.is_empty() {
-            return Err(JsValue::from_str(
-                &WasmError::Empty("date".to_string()).to_string(),
-            ));
+            return Err(JsValue::from_str(&WasmError::Empty("date".to_string()).to_string()));
         }
 
         let old_date_format = Self::get_default_format(old_format.clone(), "%Y-%m-%d %H:%M:%S");
@@ -72,11 +66,7 @@ impl DateHandler {
     /**
       格式化 UTC 时间
     */
-    fn format_date(
-        date: &str,
-        old_date_format: String,
-        date_format: String,
-    ) -> Result<String, JsValue> {
+    fn format_date(date: &str, old_date_format: String, date_format: String) -> Result<String, JsValue> {
         // Utc
         let date_time = date.parse::<DateTime<Utc>>().ok();
         if date_time.is_some() {
@@ -118,12 +108,7 @@ impl DateHandler {
             }
         }
 
-        Err(JsValue::from_str(
-            &WasmError::Error(
-                "invalid date, please input correct field `old_date_format` !".to_string(),
-            )
-            .to_string(),
-        ))
+        Err(JsValue::from_str(&WasmError::Error("invalid date, please input correct field `old_date_format` !".to_string()).to_string()))
     }
 
     /**
@@ -131,16 +116,11 @@ impl DateHandler {
       date: 时间戳
       format: 需要的格式, 默认为 `%Y-%m-%d`
     */
-    pub fn get_date_by_timestamp(
-        timestamp: u64,
-        format: Option<String>,
-    ) -> Result<String, JsValue> {
+    pub fn get_date_by_timestamp(timestamp: u64, format: Option<String>) -> Result<String, JsValue> {
         let seconds = timestamp / 1000;
         let time = NaiveDateTime::from_timestamp_opt(seconds as i64, 0);
         if time.is_none() {
-            return Err(JsValue::from_str(
-                &WasmError::Error("`timestamp` is invalid !".to_string()).to_string(),
-            ));
+            return Err(JsValue::from_str(&WasmError::Error("`timestamp` is invalid !".to_string()).to_string()));
         }
 
         let time = time.unwrap();

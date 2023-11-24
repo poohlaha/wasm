@@ -72,12 +72,7 @@ impl StorageHandler {
     fn set(name: &str, item: JsValue, storage_name: &str) -> Result<bool, JsValue> {
         let storage = Self::get_storage(storage_name)?;
         let value = Self::encode_value(item)?; // 加密 value
-        let result = js_sys::Reflect::set(
-            &storage,
-            &JsValue::from_str(name),
-            &JsValue::from_str(&value),
-        )
-        .map_err(|err| err)?;
+        let result = js_sys::Reflect::set(&storage, &JsValue::from_str(name), &JsValue::from_str(&value)).map_err(|err| err)?;
         Ok(result)
     }
 
@@ -168,11 +163,7 @@ impl StorageHandler {
             }
         });
 
-        let value = cookie.map(|c| {
-            c.trim_start_matches(name)
-                .trim_start_matches('=')
-                .to_string()
-        });
+        let value = cookie.map(|c| c.trim_start_matches(name).trim_start_matches('=').to_string());
         if let Some(value) = value {
             let value = value.replace(&format!("{}=", name), "");
             let value = Self::decode_value(JsValue::from_str(&value.trim()))?;

@@ -5,8 +5,8 @@ edition = "2021"
 authors = ["poohlaha"]
 license = "MIT/Apache-2.0"
 description = "wasm utils with rust."
-homepage = "https://github.com/poohlaha/wasm-utils.git"
-repository = "https://github.com/poohlaha/wasm-utils.git"
+homepage = "https://github.com/poohlaha/wasm/tree/main/packages/wasm-utils"
+repository = "https://github.com/poohlaha/wasm/tree/main/packages/wasm-utils"
 readme = "README.md"
 keywords = ["wams", "wasm-utils", "utils", "bale"]
 
