@@ -2,6 +2,13 @@
 
 use `rust` develop `wasm` utils。
 
+## 构建
+
+```shell
+cargo install wasm-pack
+wasm-pack build --target web
+```
+
 ## Usage
 It is necessary to determine whether the browser supports `wasm`：
 

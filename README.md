@@ -1,5 +1,5 @@
 # wasm
-  使用 `rust` 开 `wasm`
+  使用 `rust` 开发 `wasm`
 
 ## 项目
 ```
