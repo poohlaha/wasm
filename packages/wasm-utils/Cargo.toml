@@ -1,0 +1,52 @@
+[package]
+name = "wasm-utils"
+version = "0.1.0"
+edition = "2021"
+authors = ["poohlaha"]
+license = "MIT/Apache-2.0"
+description = "wasm utils with rust."
+homepage = "https://github.com/poohlaha/wasm-utils.git"
+repository = "https://github.com/poohlaha/wasm-utils.git"
+readme = "README.md"
+keywords = ["wams", "wasm-utils", "utils", "bale"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+thiserror = "1.0"
+js-sys = "0.3"
+aes = "0.8"
+base64 = "0.21"
+chrono = "0.4"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+
+[dependencies.uuid]
+version = "1.6"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    'Document',
+    'Element',
+    'HtmlElement',
+    'Node',
+    'Window',
+    'Storage',
+    "HtmlDocument"
+]
+
+# 启用 LTO
+[profile.release]
+panic = "abort" # Strip expensive panic clean-up logic
+codegen-units = 1 # Compile crates one after another so the compiler can optimize better
+lto = true # Enables link to optimizations
+opt-level = "s" # Optimize for binary size
+strip = true # Remove debug symbols
