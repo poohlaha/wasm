@@ -52,14 +52,20 @@ impl HttpClient {
 
         let mut has_content_type: bool = false;
         if let Some(header) = headers {
-            for (key, value) in header.as_object().unwrap() {
-                if key.to_lowercase() == "content-type" {
-                    has_content_type = true
+            // 判断 value 不为 null
+            if !header.is_null() {
+                for (key, value) in header.as_object().unwrap() {
+                    if key.to_lowercase() == "content-type" {
+                        has_content_type = true;
+                        // 文件上传不需要 `content-type`
+                        if is_file_submit {
+                            continue;
+                        }
+                    }
+
+                    let header_value = value.as_str().unwrap_or("");
+                    new_headers.push((key.clone(), String::from(header_value)));
                 }
-
-                let header_value = value.as_str().unwrap_or("");
-
-                new_headers.push((key.clone(), String::from(header_value)));
             }
         }
 
@@ -154,10 +160,12 @@ impl HttpClient {
         // body
         if !is_method_get {
             if let Some(data) = opts.data {
-                if form_submit {
-                    request = request.form(data.as_object().unwrap());
-                } else {
-                    request = request.body(data.to_string());
+                if !data.is_null() {
+                    if form_submit {
+                        request = request.form(data.as_object().unwrap());
+                    } else {
+                        request = request.body(data.to_string());
+                    }
                 }
             }
         }
@@ -186,7 +194,7 @@ impl HttpClient {
         let (method, _) = HttpClient::get_method(opts.method);
 
         // headers
-        let headers = Self::get_headers(opts.headers, false, false);
+        let headers = Self::get_headers(opts.headers, false, true);
 
         let client = Client::builder()
             // .danger_accept_invalid_certs(true)

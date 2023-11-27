@@ -4,8 +4,7 @@ mod error;
 use wasm_bindgen::prelude::*;
 use log::log;
 use serde_wasm_bindgen::from_value;
-use wasm_bindgen_futures::js_sys;
-use wasm_bindgen_futures::js_sys::{JsString, Object};
+use js_sys::{Array, JsString, Object};
 use crate::error::WasmError;
 use crate::http::{HttpClient, Options};
 
@@ -51,7 +50,22 @@ fn get_options(opts: JsValue, is_form_data: bool) -> Result<Options, JsValue> {
         if is_form_data {
             let form = js_sys::Reflect::get(&obj, &JsValue::from_str("form")).ok();
             if let Some(form) = form {
-                // options.form =
+                if !form.is_null() {
+                    if let Some(obj) = form.dyn_ref::<web_sys::FormData>() {
+                        let mut form = reqwest::multipart::Form::new();
+                        let iterator = js_sys::try_iter(obj)?.ok_or_else(|| "get params error !")?;
+                        for item in iterator {
+                            let entry = item?;
+                            let entry = Array::from(&entry);
+                            let key = entry.get(0).as_string().unwrap();
+                            let value = entry.get(1).as_string().unwrap();
+
+                            form = form.text(key, value);
+                        }
+
+                        options.form = Some(form);
+                    }
+                }
             }
         }
 
