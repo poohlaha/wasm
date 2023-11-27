@@ -133,7 +133,7 @@ impl HttpClient {
     }
 
     /// 发送普通请求
-    pub async fn send(opts: Options, is_form_submit: Option<bool>) -> Result<JsValue, JsValue> {
+    pub async fn client_send(opts: Options, is_form_submit: Option<bool>, is_form_data: bool) -> Result<JsValue, JsValue> {
         if opts.url.is_empty() {
             return Err(JsValue::from_str(&WasmError::Empty("url".to_string()).to_string()));
         }
@@ -147,7 +147,7 @@ impl HttpClient {
         let (method, is_method_get) = HttpClient::get_method(opts.method);
 
         // headers
-        let headers = Self::get_headers(opts.headers, form_submit, false);
+        let headers = Self::get_headers(opts.headers, form_submit, is_form_data);
 
         let client_builder =  Client::builder()
             // .danger_accept_invalid_certs(true)
@@ -159,12 +159,18 @@ impl HttpClient {
 
         // body
         if !is_method_get {
-            if let Some(data) = opts.data {
-                if !data.is_null() {
-                    if form_submit {
-                        request = request.form(data.as_object().unwrap());
-                    } else {
-                        request = request.body(data.to_string());
+            if is_form_data { // FormData
+                if let Some(form) = opts.form {
+                    request = request.multipart(form);
+                }
+            } else {
+                if let Some(data) = opts.data {
+                    if !data.is_null() {
+                        if form_submit {
+                            request = request.form(data.as_object().unwrap());
+                        } else {
+                            request = request.body(data.to_string());
+                        }
                     }
                 }
             }
@@ -184,43 +190,12 @@ impl HttpClient {
         Ok(result)
     }
 
+    pub async fn send(opts: Options, is_form_submit: Option<bool>) -> Result<JsValue, JsValue> {
+        HttpClient::client_send(opts, is_form_submit, false).await
+    }
+
     /// 发送 `FormData` 请求
     pub async fn send_form_data(opts: Options) -> Result<JsValue, JsValue> {
-        if opts.url.is_empty() {
-            return Err(JsValue::from_str(&WasmError::Empty("url".to_string()).to_string()));
-        }
-
-        // method
-        let (method, _) = HttpClient::get_method(opts.method);
-
-        // headers
-        let headers = Self::get_headers(opts.headers, false, true);
-
-        let client = Client::builder()
-            // .danger_accept_invalid_certs(true)
-            // .danger_accept_invalid_certs(true)
-            .build()
-            .map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
-
-        let mut request = client.request(method, &opts.url);
-        // let request = request.timeout(Duration::from_secs(HttpClient::get_timeout(options.timeout)));
-
-        // body
-        if let Some(form) = opts.form {
-            request = request.multipart(form);
-        }
-
-        // response
-        let response = request.headers(headers).send().await.map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
-        let status = response.status();
-
-        // response headers
-        let response_headers = response.headers().clone();
-
-        // response body
-        let body = response.text().await.map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
-        let result = HttpClient::get_response(status, response_headers, body);
-        let result = serde_wasm_bindgen::to_value(&result).map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
-        Ok(result)
+        HttpClient::client_send(opts, None, true).await
     }
 }
