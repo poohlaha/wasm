@@ -64,7 +64,7 @@ let opts: {[K: string]: any}  = {
 ```
 
 ## 打包
-在 `webpack` 中添加
+在 `webpack5` 中添加
 
 ```js
 module.exports = {
