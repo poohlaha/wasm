@@ -25,7 +25,7 @@ if (typeof WebAssembly === 'object' && typeof WebAssembly.instantiate === 'funct
 To use `wasm`, first import this to your file:
 
 ```shell
-  npm install @bale-wasm/utils
+npm install @bale-wasm/utils
 ```
 
 ```ts
@@ -240,4 +240,16 @@ StorageHandler.clear_session()
 
 ```ts
 StorageHandler.clear_cookie()
+```
+
+## 打包
+在 `webpack` 中添加
+
+```js
+module.exports = {
+  // ...其他配置
+  experiments: {
+    asyncWebAssembly: true,
+  },
+};
 ```
