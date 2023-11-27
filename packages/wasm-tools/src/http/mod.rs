@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::time::Duration;
-use reqwest::{Client, Method, StatusCode};
+use reqwest::{Client, Method, multipart, StatusCode};
 use reqwest::header::{HeaderMap, HeaderName};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -10,13 +9,16 @@ use wasm_bindgen::JsValue;
 use crate::error::WasmError;
 use crate::log;
 
-#[derive(Serialize, Deserialize, Debug)]
+pub type HttpFormData = multipart::Form;
+
+#[derive(Default, Debug)]
 pub struct Options {
     pub url: String,            // url
     pub method: Option<String>, // method: post、get
     pub data: Option<Value>,    // data
+    pub form: Option<HttpFormData>,     // form
     pub headers: Option<Value>, // headers
-    pub timeout: Option<u64>,   // timeout
+    // pub timeout: Option<u64>,   // timeout
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -34,6 +36,7 @@ const DEFAULT_TIMEOUT: u64 = 30;
 impl HttpClient {
 
     /// 获取超时时间
+    #[allow(dead_code)]
     fn get_timeout(timeout: Option<u64>) -> u64 {
         let mut send_timeout = DEFAULT_TIMEOUT;
         if !timeout.is_none() {
@@ -44,7 +47,7 @@ impl HttpClient {
     }
 
     /// get headers
-    fn get_headers(headers: Option<Value>, is_form_submit: bool, is_file_submit: bool) -> Vec<(String, String)> {
+    fn get_headers(headers: Option<Value>, is_form_submit: bool, is_file_submit: bool) -> HeaderMap {
         let mut new_headers: Vec<(String, String)> = Vec::new();
 
         let mut has_content_type: bool = false;
@@ -71,7 +74,14 @@ impl HttpClient {
             }
         }
 
-        return new_headers;
+        let mut request_headers = HeaderMap::new();
+        for (name, value) in new_headers.iter() {
+            request_headers.insert(&HeaderName::from_bytes(name.as_bytes()).unwrap(), value.as_str().parse().unwrap());
+        }
+
+        let header_msg = format!("send headers: {:#?}", request_headers);
+        log(&header_msg);
+        return request_headers;
     }
 
     fn get_error_response<T: Debug + ToString>(code: u16, error: &T) -> HttpResponse {
@@ -99,21 +109,13 @@ impl HttpClient {
         }
     }
 
-    pub async fn send(opts: Options, is_form_submit: Option<bool>) -> Result<JsValue, JsValue> {
-       if opts.url.is_empty() {
-           return Err(JsValue::from_str(&WasmError::Empty("url".to_string()).to_string()));
-       }
-
-        let mut form_submit = false;
-        if let Some(is_form_submit) = is_form_submit {
-            form_submit = is_form_submit
-        }
-
-        // method
-        let method = match opts.method {
+    fn get_method(method: Option<String>) -> (Method, bool) {
+        let mut is_method_get: bool = false;
+        let method = match method {
             None => Method::POST,
             Some(method) => {
                 if method.to_lowercase() == "get" {
+                    is_method_get = true;
                     Method::GET
                 } else {
                     Method::POST
@@ -121,45 +123,96 @@ impl HttpClient {
             }
         };
 
-        // crate client
-        let client_builder =  Client::builder();
-        // 以下两方法在 wasm 中不可用
-        // let client_builder = client_builder.danger_accept_invalid_certs(true);
-        // let client_builder = client_builder.timeout(Duration::from_secs(HttpClient::get_timeout(opts.timeout)));
-        let client = client_builder
+        (method, is_method_get)
+    }
+
+    /// 发送普通请求
+    pub async fn send(opts: Options, is_form_submit: Option<bool>) -> Result<JsValue, JsValue> {
+        if opts.url.is_empty() {
+            return Err(JsValue::from_str(&WasmError::Empty("url".to_string()).to_string()));
+        }
+
+        let mut form_submit = false;
+        if let Some(is_form_submit) = is_form_submit {
+            form_submit = is_form_submit
+        }
+
+        // method
+        let (method, is_method_get) = HttpClient::get_method(opts.method);
+
+        // headers
+        let headers = Self::get_headers(opts.headers, form_submit, false);
+
+        let client_builder =  Client::builder()
             // .danger_accept_invalid_certs(true)
             .build()
             .map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
-
         // request
-        let mut request = client.request(method, opts.url);
-
-        // headers
-        let mut request_headers = HeaderMap::new();
-        let headers = Self::get_headers(opts.headers, form_submit, false);
-        for (name, value) in headers.iter() {
-            request_headers.insert(&HeaderName::from_bytes(name.as_bytes()).unwrap(), value.as_str().parse().unwrap());
-        }
-
-        let header_msg = format!("send headers: {:#?}", request_headers);
-        log(&header_msg);
+        let mut request = client_builder.request(method, opts.url);
+        // let request = request.timeout(Duration::from_secs(HttpClient::get_timeout(options.timeout)));
 
         // body
-        if let Some(data) = opts.data {
-            if form_submit {
-                request = request.form(data.as_object().unwrap());
-            } else {
-                request = request.body(data.to_string());
+        if !is_method_get {
+            if let Some(data) = opts.data {
+                if form_submit {
+                    request = request.form(data.as_object().unwrap());
+                } else {
+                    request = request.body(data.to_string());
+                }
             }
         }
 
         // response
-        let response = request.headers(request_headers).send().await.map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+        let response = request.headers(headers).send().await.map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
         let status = response.status();
+
+        // response headers
         let response_headers = response.headers().clone();
-        let body = response.text().await.unwrap_or("".to_string());
+
+        // response body
+        let body = response.text().await.map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
         let result = HttpClient::get_response(status, response_headers, body);
-        let result = serde_wasm_bindgen::to_value(&result) .map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+        let result = serde_wasm_bindgen::to_value(&result).map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+        Ok(result)
+    }
+
+    /// 发送 `FormData` 请求
+    pub async fn send_form_data(opts: Options) -> Result<JsValue, JsValue> {
+        if opts.url.is_empty() {
+            return Err(JsValue::from_str(&WasmError::Empty("url".to_string()).to_string()));
+        }
+
+        // method
+        let (method, _) = HttpClient::get_method(opts.method);
+
+        // headers
+        let headers = Self::get_headers(opts.headers, false, false);
+
+        let client = Client::builder()
+            // .danger_accept_invalid_certs(true)
+            // .danger_accept_invalid_certs(true)
+            .build()
+            .map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+
+        let mut request = client.request(method, &opts.url);
+        // let request = request.timeout(Duration::from_secs(HttpClient::get_timeout(options.timeout)));
+
+        // body
+        if let Some(form) = opts.form {
+            request = request.multipart(form);
+        }
+
+        // response
+        let response = request.headers(headers).send().await.map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+        let status = response.status();
+
+        // response headers
+        let response_headers = response.headers().clone();
+
+        // response body
+        let body = response.text().await.map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+        let result = HttpClient::get_response(status, response_headers, body);
+        let result = serde_wasm_bindgen::to_value(&result).map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
         Ok(result)
     }
 }

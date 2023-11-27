@@ -3,6 +3,9 @@ mod error;
 
 use wasm_bindgen::prelude::*;
 use log::log;
+use serde_wasm_bindgen::from_value;
+use wasm_bindgen_futures::js_sys;
+use wasm_bindgen_futures::js_sys::{JsString, Object};
 use crate::error::WasmError;
 use crate::http::{HttpClient, Options};
 
@@ -13,12 +16,79 @@ extern "C" {
     fn log(s: &str);
 }
 
-#[wasm_bindgen]
-pub async fn client_send(opts: JsValue, is_form_submit: Option<bool>) -> Result<JsValue, JsValue> {
+fn get_options(opts: JsValue, is_form_data: bool) -> Result<Options, JsValue> {
     if !opts.is_object() {
         return Err(JsValue::from_str(&WasmError::Error("`opts` is not a object !".to_string()).to_string()));
     }
 
-    let options = serde_wasm_bindgen::from_value::<Options>(opts).map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
+    let get_str = |field_value: JsValue| -> String {
+        let value = JsString::from(field_value);
+        let value = String::from(value);
+        value
+    };
+
+    if let Some(obj) = opts.dyn_ref::<Object>() {
+        let mut options = Options::default();
+        // url
+        let url = js_sys::Reflect::get(&obj, &JsValue::from_str("url")).ok();
+        if let Some(url) = url {
+            options.url = get_str(url);
+        }
+
+        // method
+        let method = js_sys::Reflect::get(&obj, &JsValue::from_str("method")).ok();
+        if let Some(method) = method {
+            options.method = Some(get_str(method));
+        }
+
+        // data
+        let data = js_sys::Reflect::get(&obj, &JsValue::from_str("data")).ok();
+        if let Some(data) = data {
+            options.data = Some(from_value(data).ok().unwrap())
+        }
+
+        // form
+        if is_form_data {
+            let form = js_sys::Reflect::get(&obj, &JsValue::from_str("form")).ok();
+            if let Some(form) = form {
+                // options.form =
+            }
+        }
+
+        // headers
+        let headers = js_sys::Reflect::get(&obj, &JsValue::from_str("headers")).ok();
+        if let Some(headers) = headers {
+            options.headers = Some(from_value(headers).ok().unwrap())
+        }
+
+        return Ok(options);
+    }
+
+    return Err(JsValue::from_str(&WasmError::Error("`opts` is not a object !".to_string()).to_string()));
+}
+
+/**
+  发送普通请求, 包括 `form` 表单提交
+*/
+#[wasm_bindgen]
+pub async fn send(opts: JsValue, is_form_submit: Option<bool>) -> Result<JsValue, JsValue> {
+    if !opts.is_object() {
+        return Err(JsValue::from_str(&WasmError::Error("`opts` is not a object !".to_string()).to_string()));
+    }
+
+    let options = get_options(opts, false)?;
     return HttpClient::send(options, is_form_submit).await;
+}
+
+/**
+  发送 `FormData` 请求, 包括文件上传
+ */
+#[wasm_bindgen]
+pub async fn send_form_data(opts: JsValue) -> Result<JsValue, JsValue> {
+    if !opts.is_object() {
+        return Err(JsValue::from_str(&WasmError::Error("`opts` is not a object !".to_string()).to_string()));
+    }
+
+    let options = get_options(opts, true)?;
+    return HttpClient::send_form_data(options).await;
 }
