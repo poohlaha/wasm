@@ -15,6 +15,7 @@
 ## Usage
 
 * Wasm Utils([README.md](packages/wasm-utils/README.md))
+* Wasm Tools([README.md](packages/wasm-tools/README.md))
 
 
 ## 构建
