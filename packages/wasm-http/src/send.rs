@@ -1,11 +1,11 @@
 use http::Request;
-use js_sys::{JsString, Object};
+use js_sys::{JsString, Object, Number};
 use serde_json::Value;
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::prelude::*;
 use crate::client::Client;
 use crate::error::Error;
-use crate::HttpRequestOptions;
+use crate::{HttpRequestOptions};
 use tower::{ServiceBuilder, ServiceExt};
 
 /// 服务的缓冲区大小, 这个值影响在调用服务时可以排队等待处理的请求数量。如果设置为1，表示同一时刻只能有一个请求在等待处理。如果设置为更大的值，表示可以同时处理多个等待的请求。
@@ -77,9 +77,16 @@ impl HttpClient {
                 if timeout.is_null() {
                     options.timeout = None;
                 } else {
-                    let timeout = get_str(timeout).trim().to_string();
-                    let timeout = timeout.parse::<i32>().unwrap_or(0);
-                    options.timeout = Some(timeout);
+                    if timeout.is_string() {
+                        let timeout = get_str(timeout).trim().to_string();
+                        let timeout = timeout.parse::<i32>().unwrap_or(0);
+                        options.timeout = Some(timeout);
+                    } else {
+                        if let Some(timeout) = timeout.dyn_ref::<Number>() {
+                            let timeout = timeout.as_f64().map(|f| f as i32);
+                            options.timeout = timeout;
+                        }
+                    }
                 }
             }
 

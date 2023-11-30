@@ -4,10 +4,10 @@ use crate::request::{HttpRequest};
 use crate::{Error, HttpRequestOptions, HttpResponseOptions, log, TIMEOUT};
 use http::{Response};
 use http::response::Builder;
-use js_sys::{Object, Uint8Array};
+use js_sys::{JSON, JsString, Object, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{AbortController, AbortSignal, Blob, BlobPropertyBag, Headers, RequestCredentials, RequestInit};
+use web_sys::{Blob, BlobPropertyBag, Headers, RequestCredentials, RequestInit};
 use crate::client::fetch::fetch;
 
 pub struct Call;
@@ -72,7 +72,6 @@ impl Call {
         }
 
         log(&format!("request headers: {:#?}", print_headers));
-
         Ok(new_headers)
     }
 
@@ -109,6 +108,13 @@ impl Call {
                         ).map_err(Error::js_error)?;
                         data = JsValue::from(blob);
                     }
+                }
+            }
+        } else if options.data.is_some() {
+            if let Some(value) = options.data.clone() {
+                if let Some(value) = value.dyn_ref::<Object>() {
+                    let value = JSON::stringify(value).map_err(Error::js_error)?;
+                    data = JsValue::from(value);
                 }
             }
         }

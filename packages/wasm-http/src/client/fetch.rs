@@ -2,7 +2,7 @@ use js_sys::{Function, Promise};
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{AbortController, AbortSignal, Request, RequestInit, Response, window};
+use web_sys::{AbortController, Request, RequestInit, Response, window};
 
 use crate::{error::Error, request::HttpRequest};
 use crate::client::call::Call;
