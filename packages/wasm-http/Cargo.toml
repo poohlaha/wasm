@@ -1,0 +1,49 @@
+[package]
+name = "wasm-http"
+version = "0.1.0"
+edition = "2021"
+authors = ["poohlaha"]
+license = "MIT/Apache-2.0"
+description = "wasm utils with rust."
+homepage = "https://github.com/poohlaha/wasm/tree/main/packages/wasm-http"
+repository = "https://github.com/poohlaha/wasm/tree/main/packages/wasm-http"
+readme = "README.md"
+keywords = ["wams", "wasm-http", "http", "bale"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+http = "0.2.9"
+http-body = "0.4.5"
+js-sys = "0.3"
+thiserror = "1.0"
+tower = {version = "0.4", features = ["util"]}
+tower-service = "0.3.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+wasm-bindgen ="0.2"
+wasm-bindgen-futures = "0.4"
+serde-wasm-bindgen = "0.5.0"
+log = "0.4.20"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "Headers",
+    "ReferrerPolicy",
+    "Request",
+    "RequestCache",
+    "RequestCredentials",
+    "RequestInit",
+    "RequestMode",
+    "RequestRedirect",
+    "Response",
+    "ServiceWorkerGlobalScope",
+    "Blob",
+    "BlobPropertyBag",
+    "FormData",
+    "AbortSignal",
+    "AbortController",
+    "Window"
+]

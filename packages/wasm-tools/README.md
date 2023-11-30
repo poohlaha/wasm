@@ -61,6 +61,7 @@ let opts: {[K: string]: any}  = {
     method: 'post',
     form: formData
 }
+await send_form_data(opts)
 ```
 
 ## 打包

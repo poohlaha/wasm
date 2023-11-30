@@ -1,12 +1,11 @@
-pub mod http;
 mod error;
+pub mod http;
 
-use wasm_bindgen::prelude::*;
-use log::log;
-use serde_wasm_bindgen::from_value;
-use js_sys::{Array, JsString, Object};
 use crate::error::WasmError;
 use crate::http::{HttpClient, Options};
+use js_sys::{Array, JsString, Object};
+use serde_wasm_bindgen::from_value;
+use wasm_bindgen::prelude::*;
 
 // Import the `window.alert` function from the Web.
 #[wasm_bindgen]
@@ -95,8 +94,8 @@ pub async fn send(opts: JsValue, is_form_submit: Option<bool>) -> Result<JsValue
 }
 
 /**
-  发送 `FormData` 请求, 包括文件上传
- */
+ 发送 `FormData` 请求, 包括文件上传
+*/
 #[wasm_bindgen]
 pub async fn send_form_data(opts: JsValue) -> Result<JsValue, JsValue> {
     if !opts.is_object() {

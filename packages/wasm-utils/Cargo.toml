@@ -34,12 +34,12 @@ features = [
 [dependencies.web-sys]
 version = "0.3"
 features = [
-    'Document',
-    'Element',
-    'HtmlElement',
-    'Node',
-    'Window',
-    'Storage',
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Node",
+    "Window",
+    "Storage",
     "HtmlDocument"
 ]
 
