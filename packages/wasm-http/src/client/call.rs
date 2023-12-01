@@ -4,7 +4,7 @@ use crate::request::{HttpRequest};
 use crate::{Error, HttpRequestOptions, HttpResponseOptions, log, TIMEOUT};
 use http::{Response};
 use http::response::Builder;
-use js_sys::{JSON, JsString, Object, Uint8Array};
+use js_sys::{JSON, Object, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Blob, BlobPropertyBag, Headers, RequestCredentials, RequestInit};

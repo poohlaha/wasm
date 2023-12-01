@@ -111,9 +111,46 @@ impl HttpClient {
 
         let request = Request::builder().body(Value::Null).map_err(|err| JsValue::from_str(&err.to_string()))?;
         let response = service.oneshot(request).await.map_err(|err| JsValue::from_str(&err.to_string()))?;
-        let (_, body) = response.into_parts();
-        let result = serde_wasm_bindgen::to_value(&body).map_err(|err| JsValue::from_str(&err.to_string()))?;
+        let (_, mut http_response) = response.into_parts();
+        let body = http_response.body.clone();
+        // 查看 body 中有没有大数字
+
+        http_response.body = Self::convert_numbers(body);
+        let result = serde_wasm_bindgen::to_value(&http_response).map_err(|err| JsValue::from_str(&err.to_string()))?;
         Ok(result)
+    }
+
+    fn convert_numbers(value: Value) -> Value {
+        match value {
+            Value::Array(vec) => {
+                let vec = vec
+                    .iter()
+                    .map(|v| Self::convert_numbers(v.clone()))
+                    .collect();
+                Value::Array(vec)
+            },
+            Value::Object(map) => {
+                let obj = map
+                    .iter()
+                    .map(|(key, v)| (key.clone(), Self::convert_numbers(v.clone())))
+                    .collect();
+                Value::Object(obj)
+            },
+            Value::Number(num) => {
+                if let Some(val) = num.as_f64() {
+                    // 超出范围
+                    if val.is_infinite() || val.is_nan() || val.abs() > Number::MAX_SAFE_INTEGER {
+                        Value::String(num.to_string())
+                    } else {
+                        Value::Number(num)
+                    }
+                } else {
+                    Value::Number(num)
+                }
+            },
+
+            _ => value.clone()
+        }
     }
 
 }
