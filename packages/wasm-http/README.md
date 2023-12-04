@@ -37,9 +37,8 @@ import {send} from '@bale-wasm/http/lib/wasm_http'
 - Request
   文档地址: https://developer.mozilla.org/zh-CN/docs/Web/API/Request
 
-
 - opts
-  `HttpRequestOptions` 结构体, 定义了 `url`、`method`、`data`、`form`、`headers` 等属性。
+  定义了 `url`、`method`、`data`、`form`、`headers` 等属性。
 
   - url
   `string` 类型, 全路径。
@@ -60,7 +59,7 @@ import {send} from '@bale-wasm/http/lib/wasm_http'
     可选 `bool` 类型, 是否通过 `form 表单` 提交。  
 
 - request
-  `HttpRequest` 结构体, 定义了 `cache`、`credentials`、`integrity`、`mode`、`redirect`、`referrer`、`referrer_policy`、`referrer_policy`、`signal` 等。
+  定义了 `cache`、`credentials`、`integrity`、`mode`、`redirect`、`referrer`、`referrer_policy`、`referrer_policy`、`signal` 等。
 
   - cache
     分为: `default`、`no-store`、`reload`、`no-cache`、`force-cache`、`only-if-cached`, 默认为 `default`。
