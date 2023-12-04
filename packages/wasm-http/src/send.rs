@@ -7,6 +7,12 @@ use crate::client::Client;
 use crate::error::Error;
 use crate::{HttpRequestOptions};
 use tower::{ServiceBuilder, ServiceExt};
+use crate::request::cache::Cache;
+use crate::request::credentials::Credentials;
+use crate::request::HttpRequest;
+use crate::request::mode::Mode;
+use crate::request::redirect::Redirect;
+use crate::request::referrer_policy::ReferrerPolicy;
 
 /// 服务的缓冲区大小, 这个值影响在调用服务时可以排队等待处理的请求数量。如果设置为1，表示同一时刻只能有一个请求在等待处理。如果设置为更大的值，表示可以同时处理多个等待的请求。
 #[allow(dead_code)]
@@ -20,40 +26,60 @@ const CONCURRENCY_LIMIT: usize = 10;
 #[allow(dead_code)]
 const RATE_LIMIT: u64 = 5;
 
-#[wasm_bindgen]
 pub struct HttpClient;
 
-#[wasm_bindgen]
 impl HttpClient {
 
-    fn get_request_options(opts: JsValue) -> Result<HttpRequestOptions, JsValue> {
+    fn get_str(field_value: JsValue) -> String {
+        let value = JsString::from(field_value);
+        let value = String::from(value);
+        value
+    }
+
+    /// 获取 `http` `options`
+    fn get_http_options(opts: JsValue) -> Result<HttpRequestOptions, JsValue> {
         if !opts.is_object() {
             return Err(JsValue::from_str(&Error::Error("`opts` is not a object !".to_string()).to_string()));
         }
 
-        let get_str = |field_value: JsValue| -> String {
-            let value = JsString::from(field_value);
-            let value = String::from(value);
-            value
-        };
-
         if let Some(obj) = opts.dyn_ref::<Object>() {
+            if obj.is_null() {
+                return Err(JsValue::from_str(&Error::Error("`opts` is null !".to_string()).to_string()));
+            }
+
             let mut options = HttpRequestOptions::default();
+
             // url
             let url = js_sys::Reflect::get(&obj, &JsValue::from_str("url")).ok();
             if let Some(url) = url {
-                options.url = get_str(url);
+                options.url = Self::get_str(url);
+            }
+
+            if options.url.is_empty() {
+                return Err(JsValue::from_str(&Error::Error("`url` is empty !".to_string()).to_string()));
             }
 
             // method
             let method = js_sys::Reflect::get(&obj, &JsValue::from_str("method")).ok();
             if let Some(method) = method {
-                options.method = Some(get_str(method));
+                if !method.is_null() {
+                    options.method = Some(Self::get_str(method));
+                }
             }
 
             // data
             let data = js_sys::Reflect::get(&obj, &JsValue::from_str("data")).ok();
             options.data = data;
+
+            // headers
+            let headers = js_sys::Reflect::get(&obj, &JsValue::from_str("headers")).ok();
+            if let Some(headers) = headers {
+                if !headers.is_object() {
+                    return Err(JsValue::from_str(&Error::Error("`headers` is not a object !".to_string()).to_string()));
+                }
+
+                options.headers = Some(from_value(headers).ok().unwrap())
+            }
 
             // form
             let form = js_sys::Reflect::get(&obj, &JsValue::from_str("form")).ok();
@@ -65,10 +91,14 @@ impl HttpClient {
                 }
             }
 
-            // headers
-            let headers = js_sys::Reflect::get(&obj, &JsValue::from_str("headers")).ok();
-            if let Some(headers) = headers {
-                options.headers = Some(from_value(headers).ok().unwrap())
+            // form submit
+            let is_form_submit = js_sys::Reflect::get(&obj, &JsValue::from_str("isFormSubmit")).ok();
+            if let Some(is_form_submit) = is_form_submit {
+                if !is_form_submit.is_null() {
+                    if let Some(is_form_submit) = is_form_submit.dyn_ref::<js_sys::Boolean>() {
+                        options.is_form_submit = Some(is_form_submit.as_bool().unwrap_or(false));
+                    }
+                }
             }
 
             // timeout
@@ -78,7 +108,7 @@ impl HttpClient {
                     options.timeout = None;
                 } else {
                     if timeout.is_string() {
-                        let timeout = get_str(timeout).trim().to_string();
+                        let timeout = Self::get_str(timeout).trim().to_string();
                         let timeout = timeout.parse::<i32>().unwrap_or(0);
                         options.timeout = Some(timeout);
                     } else {
@@ -96,13 +126,103 @@ impl HttpClient {
         return Err(JsValue::from_str(&Error::Error("`opts` is not a object !".to_string()).to_string()));
     }
 
-    pub async fn send(opts: JsValue) -> Result<JsValue, JsValue> {
+    /// 获取 `request` `options`
+    fn get_request_options(request: JsValue) -> Result<HttpRequest, JsValue> {
+        let mut http_request = HttpRequest::default();
+        if request.is_null() {
+           return Ok(http_request);
+        }
+
+        if !request.is_object() {
+            return Err(JsValue::from_str(&Error::Error("`request` is not a object !".to_string()).to_string()));
+        }
+
+        if let Some(obj) = request.dyn_ref::<Object>() {
+            if obj.is_null() {
+               return Ok(http_request)
+            }
+
+            // cache
+            let cache = js_sys::Reflect::get(&obj, &JsValue::from_str("cache")).ok();
+            if let Some(cache) = cache {
+                let cache = Self::get_str(cache);
+                http_request.cache = Some(Cache::get_cache(cache));
+            }
+
+            // credentials
+            let credentials = js_sys::Reflect::get(&obj, &JsValue::from_str("credentials")).ok();
+            if let Some(credentials) = credentials {
+                let credentials = Self::get_str(credentials);
+                http_request.credentials = Some(Credentials::get_credentials(credentials));
+            }
+
+            // integrity
+            let integrity = js_sys::Reflect::get(&obj, &JsValue::from_str("integrity")).ok();
+            if let Some(integrity) = integrity {
+                let integrity = Self::get_str(integrity);
+                let integrity = integrity.trim();
+                if !integrity.is_empty() {
+                    http_request.integrity = Some(integrity.to_string());
+                }
+            }
+
+            // mode
+            let mode = js_sys::Reflect::get(&obj, &JsValue::from_str("mode")).ok();
+            if let Some(mode) = mode {
+                let mode = Self::get_str(mode);
+                if !mode.is_empty() {
+                    http_request.mode = Some(Mode::get_mode(mode));
+                }
+            }
+
+            // redirect
+            let redirect = js_sys::Reflect::get(&obj, &JsValue::from_str("redirect")).ok();
+            if let Some(redirect) = redirect {
+                let redirect = Self::get_str(redirect);
+                if !redirect.is_empty() {
+                    http_request.redirect = Some(Redirect::get_redirect(redirect));
+                }
+            }
+
+            // referrer
+            let referrer = js_sys::Reflect::get(&obj, &JsValue::from_str("referrer")).ok();
+            if let Some(referrer) = referrer {
+                let referrer = Self::get_str(referrer);
+                let referrer = referrer.trim();
+                if !referrer.is_empty() {
+                    http_request.referrer = Some(referrer.to_string());
+                }
+            }
+
+            // referrer policy
+            let referrer_policy = js_sys::Reflect::get(&obj, &JsValue::from_str("referrerPolicy")).ok();
+            if let Some(referrer_policy) = referrer_policy {
+                let referrer_policy = Self::get_str(referrer_policy);
+                if !referrer_policy.is_empty() {
+                    http_request.referrer_policy = Some(ReferrerPolicy::get_referrer_policy(referrer_policy));
+                }
+            }
+        }
+
+        Ok(http_request)
+    }
+
+    pub async fn send(opts: JsValue, request: JsValue) -> Result<JsValue, JsValue> {
+        if opts.is_null() {
+            return Err(JsValue::from_str(&Error::Error("`opts` is null !".to_string()).to_string()));
+        }
+
         if !opts.is_object() {
             return Err(JsValue::from_str(&Error::Error("`opts` is not a object !".to_string()).to_string()));
         }
 
-        let options = Self::get_request_options(opts)?;
-        let client = Client::new(options);
+        let options = Self::get_http_options(opts)?;
+        let request = Self::get_request_options(request)?;
+
+        // client
+        let client = Client::new_with_request(options, request);
+
+        // service
         let service = ServiceBuilder::new()
             // .buffer(SERVICE_BUFFER)
             // .concurrency_limit(CONCURRENCY_LIMIT)
@@ -152,7 +272,6 @@ impl HttpClient {
             _ => value.clone()
         }
     }
-
 }
 
 

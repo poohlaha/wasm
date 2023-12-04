@@ -29,3 +29,18 @@ impl From<Redirect> for RequestRedirect {
         }
     }
 }
+
+impl Redirect {
+    pub fn get_redirect(redirect: String) -> Redirect {
+        let redirect = redirect.trim();
+        if redirect.is_empty() {
+            return Redirect::Follow;
+        }
+
+        return match redirect.to_lowercase().as_str() {
+            "error" => Redirect::Error,
+            "manual" => Redirect::Manual,
+            _ => Redirect::Follow,
+        };
+    }
+}

@@ -31,3 +31,18 @@ impl From<Credentials> for RequestCredentials {
         }
     }
 }
+
+impl Credentials {
+    pub fn get_credentials(credentials: String) -> Credentials {
+        let credentials = credentials.trim();
+        if credentials.is_empty() {
+            return Credentials::SameOrigin;
+        }
+
+        return match credentials.to_lowercase().as_str() {
+            "omit" => Credentials::Omit,
+            "include" => Credentials::Include,
+            _ => Credentials::SameOrigin,
+        };
+    }
+}

@@ -63,3 +63,20 @@ impl From<ReferrerPolicy> for RequestReferrerPolicy {
         }
     }
 }
+
+impl ReferrerPolicy {
+    pub fn get_referrer_policy(referrer_policy: String) -> ReferrerPolicy {
+        let referrer_policy = referrer_policy.trim();
+        return match referrer_policy.to_lowercase().as_str() {
+            "" => ReferrerPolicy::None,
+            "no-referrer" => ReferrerPolicy::NoReferrer,
+            "no-referrer-when-downgrade" => ReferrerPolicy::NoReferrerWhenDowngrade,
+            "origin" => ReferrerPolicy::Origin,
+            "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
+            "unsafe-url" => ReferrerPolicy::UnsafeUrl,
+            "same-origin" => ReferrerPolicy::SameOrigin,
+            "strict-origin" => ReferrerPolicy::StrictOrigin,
+            _ => ReferrerPolicy::StrictOriginWhenCrossOrigin,
+        };
+    }
+}

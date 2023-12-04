@@ -39,6 +39,7 @@ fn js_fetch(timeout: Option<i32>, request: &Request, http_request: Option<HttpRe
         }
     }
 
+    // 创建一个安全的 `Javascript` 闭包
     let controller_closure = Closure::wrap(Box::new(move || {
         // 在这里执行超时时的操作
         println!("Timeout reached!");

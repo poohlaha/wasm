@@ -18,18 +18,22 @@ pub struct Client {
 }
 
 impl Client {
+
+    #[allow(dead_code)]
     pub fn new(options: HttpRequestOptions) -> Self {
         Self { request: None, options }
     }
 
-    pub fn new_with_options(request: HttpRequest, options: HttpRequestOptions) -> Self {
+    #[allow(dead_code)]
+    pub fn new_with_request(options: HttpRequestOptions, request: HttpRequest) -> Self {
         Self {
             request: Some(request),
             options,
         }
     }
 
-    pub fn with_options(&mut self, request: HttpRequest, options: HttpRequestOptions) -> &mut Client {
+    #[allow(dead_code)]
+    pub fn with_request(&mut self, options: HttpRequestOptions, request: HttpRequest) -> &mut Client {
         self.request = Some(request);
         self.options = options;
         self

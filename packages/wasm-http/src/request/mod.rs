@@ -1,8 +1,8 @@
-mod cache;
-mod credentials;
-mod mode;
-mod redirect;
-mod referrer_policy;
+pub(crate) mod cache;
+pub(crate) mod credentials;
+pub(crate) mod mode;
+pub(crate) mod redirect;
+pub(crate) mod referrer_policy;
 
 use web_sys::{AbortSignal, RequestInit};
 use crate::request::cache::Cache;
@@ -21,10 +21,11 @@ pub struct HttpRequest {
     pub redirect: Option<Redirect>,
     pub referrer: Option<String>,
     pub referrer_policy: Option<ReferrerPolicy>,
-    pub signal: Option<AbortSignal>
+    pub(crate) signal: Option<AbortSignal>
 }
 
 impl HttpRequest {
+
     pub fn new() -> Self {
         Default::default()
     }

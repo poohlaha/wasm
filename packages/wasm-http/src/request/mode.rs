@@ -44,3 +44,19 @@ impl From<Mode> for RequestMode {
         }
     }
 }
+
+impl Mode {
+    pub fn get_mode(mode: String) -> Mode {
+        let mode = mode.trim();
+        if mode.is_empty() {
+            return Mode::NoCors;
+        }
+
+        return match mode.to_lowercase().as_str() {
+            "same-origin" => Mode::SameOrigin,
+            "cors" => Mode::Cors,
+            "navigate" => Mode::Navigate,
+            _ => Mode::NoCors,
+        };
+    }
+}

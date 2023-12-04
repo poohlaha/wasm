@@ -55,3 +55,21 @@ impl From<Cache> for RequestCache {
         }
     }
 }
+
+impl Cache {
+    pub fn get_cache(cache: String) -> Cache {
+        let cache = cache.trim();
+        if cache.is_empty() {
+            return Cache::Default;
+        }
+
+        return match cache.to_lowercase().as_str() {
+            "no-store" => Cache::NoStore,
+            "reload" => Cache::Reload,
+            "no-cache" => Cache::NoCache,
+            "force-cache" => Cache::ForceCache,
+            "only-if-cached" => Cache::OnlyIfCached,
+            _ => Cache::Default,
+        };
+    }
+}

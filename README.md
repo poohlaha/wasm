@@ -16,6 +16,7 @@
 
 * Wasm Utils([README.md](packages/wasm-utils/README.md))
 * Wasm Tools([README.md](packages/wasm-tools/README.md))
+* Wasm Http([README.md](packages/wasm-http/README.md))
 
 
 ## 构建
