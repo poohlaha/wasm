@@ -1,19 +1,18 @@
-use std::collections::HashMap;
+use crate::client::fetch::fetch;
+use crate::request::HttpRequest;
+use crate::{log, Error, HttpRequestOptions, HttpResponseOptions, TIMEOUT};
 use http::header::CONTENT_TYPE;
-use crate::request::{HttpRequest};
-use crate::{Error, HttpRequestOptions, HttpResponseOptions, log, TIMEOUT};
-use http::{Response};
 use http::response::Builder;
-use js_sys::{JSON, Object, Uint8Array};
+use http::Response;
+use js_sys::{Object, Uint8Array, JSON};
+use std::collections::HashMap;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Blob, BlobPropertyBag, Headers, RequestCredentials, RequestInit};
-use crate::client::fetch::fetch;
 
 pub struct Call;
 
 impl Call {
-
     pub async fn exec(request: Option<HttpRequest>, options: HttpRequestOptions) -> Result<Response<HttpResponseOptions>, Error> {
         let headers = Self::prepare_headers(&options)?;
 
@@ -33,12 +32,14 @@ impl Call {
         let response_body = response_body.as_string().unwrap_or(String::new());
         let response_body = serde_json::from_slice(response_body.as_bytes()).map_err(|_| Error::MissingResponseBody)?;
 
-        result.body(HttpResponseOptions {
-            status_code: response.status(),
-            headers: response_headers,
-            body: response_body,
-            error: "".to_string(),
-        }).map_err(Error::HttpError)
+        result
+            .body(HttpResponseOptions {
+                status_code: response.status(),
+                headers: response_headers,
+                body: response_body,
+                error: "".to_string(),
+            })
+            .map_err(Error::HttpError)
     }
 
     /// request headers
@@ -51,8 +52,8 @@ impl Call {
 
         // 文件上传下载
         if is_file_submit {
-
-        } else if is_form_submit { // form 表单提交
+        } else if is_form_submit {
+            // form 表单提交
             new_headers.append(CONTENT_TYPE.as_str(), "application/x-www-form-urlencoded").map_err(Error::js_error)?;
             print_headers.insert(CONTENT_TYPE.to_string(), "application/x-www-form-urlencoded".to_string());
         } else {
@@ -67,7 +68,6 @@ impl Call {
                     new_headers.append(key.as_str(), header_value).map_err(Error::js_error)?;
                     print_headers.insert(key.to_string(), header_value.to_string());
                 }
-
             }
         }
 
@@ -93,19 +93,18 @@ impl Call {
         };
 
         let mut data: JsValue = JsValue::from_str("");
-        if options.form.is_some() { // FormData 提交
+        if options.form.is_some() {
+            // FormData 提交
             if let Some(form) = options.form.clone() {
                 data = JsValue::from(form);
             }
-        } else if options.is_form_submit.is_some() { // form 表单提交
+        } else if options.is_form_submit.is_some() {
+            // form 表单提交
             if let Some(is_form_submit) = options.is_form_submit {
                 if is_form_submit {
                     if let Some(value) = options.data.clone() {
                         let uint8_array = Uint8Array::new(&value);
-                        let blob = Blob::new_with_u8_array_sequence_and_options(
-                            &js_sys::Array::of1(&uint8_array),
-                            &BlobPropertyBag::new()
-                        ).map_err(Error::js_error)?;
+                        let blob = Blob::new_with_u8_array_sequence_and_options(&js_sys::Array::of1(&uint8_array), &BlobPropertyBag::new()).map_err(Error::js_error)?;
                         data = JsValue::from(blob);
                     }
                 }
@@ -142,7 +141,7 @@ impl Call {
     }
 
     /// response headers
-    fn prepare_response_headers(mut result: Builder, headers: Headers) -> Result<(Builder, HashMap<String, String>), Error>{
+    fn prepare_response_headers(mut result: Builder, headers: Headers) -> Result<(Builder, HashMap<String, String>), Error> {
         let headers_iter = js_sys::try_iter(headers.as_ref()).map_err(Error::js_error)?;
         let mut response_headers: HashMap<String, String> = HashMap::new();
         if let Some(header_iter) = headers_iter {
@@ -166,5 +165,3 @@ impl Call {
         Ok((result, response_headers))
     }
 }
-
-

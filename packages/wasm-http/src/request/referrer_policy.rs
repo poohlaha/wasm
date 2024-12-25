@@ -7,7 +7,6 @@ use web_sys::ReferrerPolicy as RequestReferrerPolicy;
 #[doc = "https://developer.mozilla.org/en-US/docs/Web/API/Request/referrerPolicy"]
 #[derive(Debug, Clone, Copy, Default)]
 pub enum ReferrerPolicy {
-
     /// 对应于没有引用策略，会回退到其他地方定义的引用策略，或者在没有这样的更高级策略可用的情况下，回退到默认的引用策略。
     None,
 
@@ -43,23 +42,18 @@ pub enum ReferrerPolicy {
     StrictOriginWhenCrossOrigin,
 }
 
-
 impl From<ReferrerPolicy> for RequestReferrerPolicy {
     fn from(value: ReferrerPolicy) -> Self {
         match value {
             ReferrerPolicy::None => RequestReferrerPolicy::None,
             ReferrerPolicy::NoReferrer => RequestReferrerPolicy::NoReferrer,
-            ReferrerPolicy::NoReferrerWhenDowngrade => {
-                RequestReferrerPolicy::NoReferrerWhenDowngrade
-            }
+            ReferrerPolicy::NoReferrerWhenDowngrade => RequestReferrerPolicy::NoReferrerWhenDowngrade,
             ReferrerPolicy::Origin => RequestReferrerPolicy::Origin,
             ReferrerPolicy::OriginWhenCrossOrigin => RequestReferrerPolicy::OriginWhenCrossOrigin,
             ReferrerPolicy::UnsafeUrl => RequestReferrerPolicy::UnsafeUrl,
             ReferrerPolicy::SameOrigin => RequestReferrerPolicy::SameOrigin,
             ReferrerPolicy::StrictOrigin => RequestReferrerPolicy::StrictOrigin,
-            ReferrerPolicy::StrictOriginWhenCrossOrigin => {
-                RequestReferrerPolicy::StrictOriginWhenCrossOrigin
-            }
+            ReferrerPolicy::StrictOriginWhenCrossOrigin => RequestReferrerPolicy::StrictOriginWhenCrossOrigin,
         }
     }
 }

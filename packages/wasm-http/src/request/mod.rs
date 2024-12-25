@@ -4,12 +4,12 @@ pub(crate) mod mode;
 pub(crate) mod redirect;
 pub(crate) mod referrer_policy;
 
-use web_sys::{AbortSignal, RequestInit};
 use crate::request::cache::Cache;
 use crate::request::credentials::Credentials;
 use crate::request::mode::Mode;
 use crate::request::redirect::Redirect;
 use crate::request::referrer_policy::ReferrerPolicy;
+use web_sys::{AbortSignal, RequestInit};
 
 #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Request/Request)"]
 #[derive(Debug, Clone, Default)]
@@ -21,11 +21,10 @@ pub struct HttpRequest {
     pub redirect: Option<Redirect>,
     pub referrer: Option<String>,
     pub referrer_policy: Option<ReferrerPolicy>,
-    pub(crate) signal: Option<AbortSignal>
+    pub(crate) signal: Option<AbortSignal>,
 }
 
 impl HttpRequest {
-
     pub fn new() -> Self {
         Default::default()
     }

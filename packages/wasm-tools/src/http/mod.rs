@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use std::fmt::Debug;
-use reqwest::{Client, Method, multipart, StatusCode};
 use reqwest::header::{HeaderMap, HeaderName};
+use reqwest::{multipart, Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
+use std::fmt::Debug;
 use wasm_bindgen::JsValue;
 
 use crate::error::WasmError;
@@ -13,12 +13,12 @@ pub type HttpFormData = multipart::Form;
 
 #[derive(Default, Debug)]
 pub struct Options {
-    pub url: String,            // url
-    pub method: Option<String>, // method: post、get
-    pub data: Option<Value>,    // data
-    pub form: Option<HttpFormData>,     // form
-    pub headers: Option<Value>, // headers
-    // pub timeout: Option<u64>,   // timeout
+    pub url: String,                // url
+    pub method: Option<String>,     // method: post、get
+    pub data: Option<Value>,        // data
+    pub form: Option<HttpFormData>, // form
+    pub headers: Option<Value>,     // headers
+                                    // pub timeout: Option<u64>,   // timeout
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -34,7 +34,6 @@ pub struct HttpClient;
 const DEFAULT_TIMEOUT: u64 = 30;
 
 impl HttpClient {
-
     /// 获取超时时间
     #[allow(dead_code)]
     fn get_timeout(timeout: Option<u64>) -> u64 {
@@ -149,7 +148,7 @@ impl HttpClient {
         // headers
         let headers = Self::get_headers(opts.headers, form_submit, is_form_data);
 
-        let client_builder =  Client::builder()
+        let client_builder = Client::builder()
             // .danger_accept_invalid_certs(true)
             .build()
             .map_err(|err| JsValue::from_str(&WasmError::Error(err.to_string()).to_string()))?;
@@ -159,7 +158,8 @@ impl HttpClient {
 
         // body
         if !is_method_get {
-            if is_form_data { // FormData
+            if is_form_data {
+                // FormData
                 if let Some(form) = opts.form {
                     request = request.multipart(form);
                 }

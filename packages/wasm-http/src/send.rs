@@ -1,18 +1,18 @@
-use http::Request;
-use js_sys::{JsString, Object, Number};
-use serde_json::Value;
-use serde_wasm_bindgen::from_value;
-use wasm_bindgen::prelude::*;
 use crate::client::Client;
 use crate::error::Error;
-use crate::{HttpRequestOptions};
-use tower::{ServiceBuilder, ServiceExt};
 use crate::request::cache::Cache;
 use crate::request::credentials::Credentials;
-use crate::request::HttpRequest;
 use crate::request::mode::Mode;
 use crate::request::redirect::Redirect;
 use crate::request::referrer_policy::ReferrerPolicy;
+use crate::request::HttpRequest;
+use crate::HttpRequestOptions;
+use http::Request;
+use js_sys::{JsString, Number, Object};
+use serde_json::Value;
+use serde_wasm_bindgen::from_value;
+use tower::{ServiceBuilder, ServiceExt};
+use wasm_bindgen::prelude::*;
 
 /// 服务的缓冲区大小, 这个值影响在调用服务时可以排队等待处理的请求数量。如果设置为1，表示同一时刻只能有一个请求在等待处理。如果设置为更大的值，表示可以同时处理多个等待的请求。
 #[allow(dead_code)]
@@ -29,7 +29,6 @@ const RATE_LIMIT: u64 = 5;
 pub struct HttpClient;
 
 impl HttpClient {
-
     fn get_str(field_value: JsValue) -> String {
         let value = JsString::from(field_value);
         let value = String::from(value);
@@ -130,7 +129,7 @@ impl HttpClient {
     fn get_request_options(request: JsValue) -> Result<HttpRequest, JsValue> {
         let mut http_request = HttpRequest::default();
         if request.is_null() {
-           return Ok(http_request);
+            return Ok(http_request);
         }
 
         if !request.is_object() {
@@ -139,7 +138,7 @@ impl HttpClient {
 
         if let Some(obj) = request.dyn_ref::<Object>() {
             if obj.is_null() {
-               return Ok(http_request)
+                return Ok(http_request);
             }
 
             // cache
@@ -234,7 +233,6 @@ impl HttpClient {
         let (_, mut http_response) = response.into_parts();
         let body = http_response.body.clone();
         // 查看 body 中有没有大数字
-
         http_response.body = Self::convert_numbers(body);
         let result = serde_wasm_bindgen::to_value(&http_response).map_err(|err| JsValue::from_str(&err.to_string()))?;
         Ok(result)
@@ -243,19 +241,13 @@ impl HttpClient {
     fn convert_numbers(value: Value) -> Value {
         match value {
             Value::Array(vec) => {
-                let vec = vec
-                    .iter()
-                    .map(|v| Self::convert_numbers(v.clone()))
-                    .collect();
+                let vec = vec.iter().map(|v| Self::convert_numbers(v.clone())).collect();
                 Value::Array(vec)
-            },
+            }
             Value::Object(map) => {
-                let obj = map
-                    .iter()
-                    .map(|(key, v)| (key.clone(), Self::convert_numbers(v.clone())))
-                    .collect();
+                let obj = map.iter().map(|(key, v)| (key.clone(), Self::convert_numbers(v.clone()))).collect();
                 Value::Object(obj)
-            },
+            }
             Value::Number(num) => {
                 if let Some(val) = num.as_f64() {
                     // 超出范围
@@ -267,11 +259,9 @@ impl HttpClient {
                 } else {
                     Value::Number(num)
                 }
-            },
+            }
 
-            _ => value.clone()
+            _ => value.clone(),
         }
     }
 }
-
-

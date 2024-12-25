@@ -1,8 +1,9 @@
-mod fetch;
 mod call;
+mod fetch;
 
+use crate::client::call::Call;
 use crate::error::Error;
-use crate::request::{HttpRequest};
+use crate::request::HttpRequest;
 use crate::{HttpRequestOptions, HttpResponseOptions};
 use http::{Request, Response};
 use serde_json::Value;
@@ -10,7 +11,6 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tower_service::Service;
-use crate::client::call::Call;
 
 pub struct Client {
     request: Option<HttpRequest>,
@@ -18,7 +18,6 @@ pub struct Client {
 }
 
 impl Client {
-
     #[allow(dead_code)]
     pub fn new(options: HttpRequestOptions) -> Self {
         Self { request: None, options }
@@ -26,10 +25,7 @@ impl Client {
 
     #[allow(dead_code)]
     pub fn new_with_request(options: HttpRequestOptions, request: HttpRequest) -> Self {
-        Self {
-            request: Some(request),
-            options,
-        }
+        Self { request: Some(request), options }
     }
 
     #[allow(dead_code)]

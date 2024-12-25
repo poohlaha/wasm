@@ -1,11 +1,11 @@
 use js_sys::{Function, Promise};
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasm_bindgen::prelude::Closure;
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{AbortController, Request, RequestInit, Response, window};
+use web_sys::{window, AbortController, Request, RequestInit, Response};
 
-use crate::{error::Error, request::HttpRequest};
 use crate::client::call::Call;
+use crate::{error::Error, request::HttpRequest};
 
 #[wasm_bindgen]
 extern "C" {
@@ -72,7 +72,6 @@ fn js_fetch(timeout: Option<i32>, request: &Request, http_request: Option<HttpRe
         fetch_with_request_and_init(request, &init)
     }
 }
-
 
 pub async fn fetch(timeout: Option<i32>, request: &Request, http_request: Option<HttpRequest>) -> Result<Response, Error> {
     let js_response = JsFuture::from(js_fetch(timeout, request, http_request)).await.map_err(Error::js_error)?;

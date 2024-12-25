@@ -8,7 +8,6 @@ use web_sys::RequestMode;
 #[doc = "https://developer.mozilla.org/en-US/docs/Web/API/Request/mode"]
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Mode {
-
     /// 如果使用此模式向另外一个源发送请求，显而易见，结果会是一个错误。你可以设置该模式以确保请求总是向当前的源发起的
     SameOrigin,
 
@@ -20,10 +19,10 @@ pub enum Mode {
     Cors,
 
     /**
-        保证请求对应的 `method` 只有 `HEAD`，`GET` 或 `POST` 方法，并且请求的 `headers` 只能有简单请求头 (simple headers)。
-        如果 `ServiceWorker` 劫持了此类请求，除了 `simple header` 之外，不能添加或修改其他 `header`。
-        另外 `JavaScript` 不会读取 `Response` 的任何属性。这样将会确保 `ServiceWorker` 不会影响 Web 语义 (semantics of the Web)，同时保证了在跨域时不会发生安全和隐私泄露的问题。
-     */
+       保证请求对应的 `method` 只有 `HEAD`，`GET` 或 `POST` 方法，并且请求的 `headers` 只能有简单请求头 (simple headers)。
+       如果 `ServiceWorker` 劫持了此类请求，除了 `simple header` 之外，不能添加或修改其他 `header`。
+       另外 `JavaScript` 不会读取 `Response` 的任何属性。这样将会确保 `ServiceWorker` 不会影响 Web 语义 (semantics of the Web)，同时保证了在跨域时不会发生安全和隐私泄露的问题。
+    */
     #[default]
     NoCors,
 
