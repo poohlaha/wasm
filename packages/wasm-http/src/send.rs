@@ -6,7 +6,7 @@ use crate::request::mode::Mode;
 use crate::request::redirect::Redirect;
 use crate::request::referrer_policy::ReferrerPolicy;
 use crate::request::HttpRequest;
-use crate::HttpRequestOptions;
+use crate::{log, HttpRequestOptions};
 use http::Request;
 use js_sys::{JsString, Number, Object};
 use serde_json::Value;
@@ -80,26 +80,6 @@ impl HttpClient {
                 options.headers = Some(from_value(headers).ok().unwrap())
             }
 
-            // form
-            let form = js_sys::Reflect::get(&obj, &JsValue::from_str("form")).ok();
-            if let Some(form) = form {
-                if !form.is_null() {
-                    if let Some(form) = form.dyn_ref::<web_sys::FormData>() {
-                        options.form = Some(form.clone());
-                    }
-                }
-            }
-
-            // form submit
-            let is_form_submit = js_sys::Reflect::get(&obj, &JsValue::from_str("isFormSubmit")).ok();
-            if let Some(is_form_submit) = is_form_submit {
-                if !is_form_submit.is_null() {
-                    if let Some(is_form_submit) = is_form_submit.dyn_ref::<js_sys::Boolean>() {
-                        options.is_form_submit = Some(is_form_submit.as_bool().unwrap_or(false));
-                    }
-                }
-            }
-
             // timeout
             let timeout = js_sys::Reflect::get(&obj, &JsValue::from_str("timeout")).ok();
             if let Some(timeout) = timeout {
@@ -119,10 +99,26 @@ impl HttpClient {
                 }
             }
 
+            // type
+            let _type = js_sys::Reflect::get(&obj, &JsValue::from_str("type")).ok();
+            if let Some(_type) = _type {
+                let request_type: String = Self::get_str(_type);
+                let request_type = request_type.parse::<i32>().unwrap_or(0);
+                options.request_type = Some(crate::HttpRequestType::get_type(request_type));
+            }
+
+            // responseType
+            let response_type = js_sys::Reflect::get(&obj, &JsValue::from_str("responseType")).ok();
+            if let Some(response_type) = response_type {
+                let response_type: String = Self::get_str(response_type);
+                let response_type = response_type.parse::<i32>().unwrap_or(0);
+                options.response_type = Some(crate::HttpRequestType::get_type(response_type));
+            }
+
             return Ok(options);
         }
 
-        return Err(JsValue::from_str(&Error::Error("`opts` is not a object !".to_string()).to_string()));
+        Err(JsValue::from_str(&Error::Error("`opts` is not a object !".to_string()).to_string()))
     }
 
     /// 获取 `request` `options`
@@ -233,6 +229,7 @@ impl HttpClient {
         let (_, mut http_response) = response.into_parts();
         let body = http_response.body.clone();
         // 查看 body 中有没有大数字
+
         http_response.body = Self::convert_numbers(body);
         let result = serde_wasm_bindgen::to_value(&http_response).map_err(|err| JsValue::from_str(&err.to_string()))?;
         Ok(result)

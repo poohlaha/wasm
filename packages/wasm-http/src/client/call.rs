@@ -1,14 +1,14 @@
 use crate::client::fetch::fetch;
 use crate::request::HttpRequest;
-use crate::{log, Error, HttpRequestOptions, HttpResponseOptions, TIMEOUT};
+use crate::{log, Error, HttpRequestOptions, HttpRequestType, HttpResponseOptions, TIMEOUT};
 use http::header::CONTENT_TYPE;
 use http::response::Builder;
 use http::Response;
-use js_sys::{Object, Uint8Array, JSON};
+use js_sys::{Array, Object, Uint8Array, JSON};
 use std::collections::HashMap;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Blob, BlobPropertyBag, Headers, RequestCredentials, RequestInit};
+use web_sys::{Blob, BlobPropertyBag, FormData, Headers, RequestCredentials, RequestInit};
 
 pub struct Call;
 
@@ -27,16 +27,60 @@ impl Call {
         let (result, response_headers) = Self::prepare_response_headers(result, response_headers)?;
 
         // response body
-        let response_body = response.text().map_err(Error::js_error)?;
-        let response_body = JsFuture::from(response_body).await.map_err(Error::js_error)?;
-        let response_body = response_body.as_string().unwrap_or(String::new());
-        let response_body = serde_json::from_slice(response_body.as_bytes()).map_err(|_| Error::MissingResponseBody)?;
+        let status_code = response.status();
+        let response_type = options.response_type.clone().unwrap_or(HttpRequestType::Text);
+
+        let method = js_request.method().to_string();
+        let mut body = serde_json::Value::Null;
+
+        match response_type {
+            HttpRequestType::Blob => {
+                let response_body = response.blob().map_err(Error::js_error)?;
+                let response_body: JsValue = JsFuture::from(response_body).await.map_err(Error::js_error)?;
+                let blob = response_body.dyn_ref::<Blob>();
+                if let Some(blob) = blob {
+                    let array_buffer = JsFuture::from(blob.array_buffer()).await.map_err(Error::js_error)?;
+                    let uint8_array = Uint8Array::new(&array_buffer);
+                    let binary_array: Vec<u8> = uint8_array.to_vec();
+                    body = serde_json::Value::Object(serde_json::Map::from_iter(vec![("binary".to_string(), serde_json::Value::Array(binary_array.into_iter().map(serde_json::Value::from).collect()))]))
+                }
+            }
+            HttpRequestType::FormData => {
+                let response_body = response.form_data().map_err(Error::js_error)?;
+                let response_body: JsValue = JsFuture::from(response_body).await.map_err(Error::js_error)?;
+                let form_data = response_body.dyn_ref::<FormData>();
+                if let Some(form_data) = form_data {
+                    let iterator = js_sys::try_iter(form_data).map_err(Error::js_error)?;
+                    let mut form_data_map = serde_json::Map::new();
+                    if let Some(iterator) = iterator {
+                        for item in iterator {
+                            let entry = item.map_err(Error::js_error)?;
+                            let entry = Array::from(&entry);
+                            let key = entry.get(0).as_string().unwrap();
+                            let value = entry.get(1).as_string().unwrap();
+                            form_data_map.insert(key, serde_json::Value::String(value));
+                        }
+
+                        body = serde_json::Value::Object(form_data_map);
+                    }
+                }
+            }
+            _ => {
+                let response_body = response.text().map_err(Error::js_error)?;
+                let response_body: JsValue = JsFuture::from(response_body).await.map_err(Error::js_error)?;
+                if let Some(response_body) = response_body.as_string() {
+                    if method.to_lowercase() == "post" || method.to_lowercase() == "get" {
+                        body = serde_json::from_slice(response_body.as_bytes()).map_err(|_| Error::MissingResponseBody)?;
+                    }
+                }
+            }
+        }
 
         result
             .body(HttpResponseOptions {
-                status_code: response.status(),
+                status_code,
                 headers: response_headers,
-                body: response_body,
+                body,
                 error: "".to_string(),
             })
             .map_err(Error::HttpError)
@@ -47,18 +91,10 @@ impl Call {
         let headers = &options.headers;
         let new_headers = Headers::new().map_err(Error::js_error)?;
         let mut print_headers: HashMap<String, String> = HashMap::new();
-        let is_form_submit = if options.is_form_submit.is_some() { true } else { false };
-        let is_file_submit = if options.form.is_some() { true } else { false };
 
-        // 文件上传下载
-        if is_file_submit {
-        } else if is_form_submit {
-            // form 表单提交
-            new_headers.append(CONTENT_TYPE.as_str(), "application/x-www-form-urlencoded").map_err(Error::js_error)?;
-            print_headers.insert(CONTENT_TYPE.to_string(), "application/x-www-form-urlencoded".to_string());
-        } else {
-            new_headers.append(CONTENT_TYPE.as_str(), "application/json").map_err(Error::js_error)?;
-            print_headers.insert(CONTENT_TYPE.to_string(), "application/json".to_string());
+        let request_type = &options.request_type;
+        if let Some(request_type) = request_type {
+            new_headers.append(CONTENT_TYPE.as_str(), request_type.get_content_type().as_str()).map_err(Error::js_error)?;
         }
 
         if let Some(headers) = headers {
@@ -71,14 +107,14 @@ impl Call {
             }
         }
 
-        log(&format!("request headers: {:#?}", print_headers));
+        log(&format!("wasm request headers: {:#?}", print_headers));
         Ok(new_headers)
     }
 
     /// js request
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Request/Request)"]
     fn prepare_js_request(options: &HttpRequestOptions, headers: Headers) -> Result<web_sys::Request, Error> {
-        let mut request = RequestInit::new();
+        let request = RequestInit::new();
         let mut is_method_get: bool = false;
         let method = match &options.method {
             None => "POST",
@@ -86,6 +122,10 @@ impl Call {
                 if method.to_lowercase() == "get" {
                     is_method_get = true;
                     "GET"
+                } else if method.to_lowercase() == "put" {
+                    "PUT"
+                } else if method.to_lowercase() == "delete" {
+                    "DELETE"
                 } else {
                     "POST"
                 }
@@ -93,34 +133,38 @@ impl Call {
         };
 
         let mut data: JsValue = JsValue::from_str("");
-        if options.form.is_some() {
-            // FormData 提交
-            if let Some(form) = options.form.clone() {
-                data = JsValue::from(form);
-            }
-        } else if options.is_form_submit.is_some() {
-            // form 表单提交
-            if let Some(is_form_submit) = options.is_form_submit {
-                if is_form_submit {
+
+        let request_type = &options.request_type;
+        if let Some(request_type) = request_type {
+            match request_type {
+                // form 表单提交
+                HttpRequestType::FormSubmit => {
                     if let Some(value) = options.data.clone() {
                         let uint8_array = Uint8Array::new(&value);
                         let blob = Blob::new_with_u8_array_sequence_and_options(&js_sys::Array::of1(&uint8_array), &BlobPropertyBag::new()).map_err(Error::js_error)?;
                         data = JsValue::from(blob);
                     }
                 }
-            }
-        } else if options.data.is_some() {
-            if let Some(value) = options.data.clone() {
-                if let Some(value) = value.dyn_ref::<Object>() {
-                    let value = JSON::stringify(value).map_err(Error::js_error)?;
-                    data = JsValue::from(value);
+                // formData 提交
+                HttpRequestType::FormData => {
+                    data = JsValue::from(options.data.clone());
+                }
+                _ => {
+                    if let Some(value) = options.data.clone() {
+                        if let Some(value) = value.dyn_ref::<Object>() {
+                            let value = JSON::stringify(value).map_err(Error::js_error)?;
+                            data = JsValue::from(value);
+                        }
+                    }
                 }
             }
         }
 
-        let mut request = request.method(method).headers(headers.as_ref()).credentials(RequestCredentials::SameOrigin);
+        request.set_method(method);
+        request.set_headers(headers.as_ref());
+        request.set_credentials(RequestCredentials::SameOrigin);
         if !is_method_get {
-            request = request.body(Some(&data));
+            request.set_body(&data);
         }
 
         web_sys::Request::new_with_str_and_init(&options.url.as_str(), &request).map_err(Error::js_error)

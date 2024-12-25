@@ -6,7 +6,8 @@ use `rust` develop `wasm` `http` by `Web API Request`。
 
 ```shell
 cargo install wasm-pack
-wasm-pack build
+wasm-pack build --debug  # 调试
+wasm-pack build --release # 生产
 ```
 
 ## Usage
@@ -41,7 +42,7 @@ import {send} from '@bale-wasm/http/lib/wasm_http'
   定义了 `url`、`method`、`data`、`form`、`headers` 等属性。
 
   - url
-  `string` 类型, 全路径。
+    `string` 类型, 全路径。
 
   - method
     可选 `string` 类型, `POST` 和 `GET`, 默认为 `POST`。
@@ -53,13 +54,13 @@ import {send} from '@bale-wasm/http/lib/wasm_http'
     `object` 类型, 定义 `header` 头。
 
   - timeout
-    可选 `number` 类型, 定义 `超时时间`, `-1` 为 `不超时`, 默认为 `30s`。  
+    可选 `number` 类型, 定义 `超时时间`, `-1` 为 `不超时`, 默认为 `30s`。
 
   - isFormSubmit
-    可选 `bool` 类型, 是否通过 `form 表单` 提交。  
+    可选 `bool` 类型, 是否通过 `form 表单` 提交。
 
 - request
-  定义了 `cache`、`credentials`、`integrity`、`mode`、`redirect`、`referrer`、`referrer_policy`、`referrer_policy`、`signal` 等。
+  定义了 `cache`、`credentials`、`integrity`、`mode`、`redirect`、`referrer`、`referrer_policy`、`signal` 等。
 
   - cache
     分为: `default`、`no-store`、`reload`、`no-cache`、`force-cache`、`only-if-cached`, 默认为 `default`。
@@ -94,13 +95,13 @@ import {send} from '@bale-wasm/http/lib/wasm_http'
 - 普通请求
 ```ts
 let opts: {[K: string]: any} = {
-    url: 'https://api.github.com/repos/rustwasm/wasm-bindgen/branches/master',
-    method: 'get',
-    headers: {
-      Accept: 'application/vnd.github.v3+json'
-    }
+  url: 'https://api.github.com/repos/rustwasm/wasm-bindgen/branches/master',
+  method: 'get',
+  headers: {
+    Accept: 'application/vnd.github.v3+json'
+  }
 }
-    
+
 let response = await send(opts, null)
 console.log(response)
 ```

@@ -85,38 +85,38 @@ impl HttpRequest {
 
 impl From<HttpRequest> for RequestInit {
     fn from(value: HttpRequest) -> Self {
-        let mut init = RequestInit::new();
+        let init = RequestInit::new();
 
         if let Some(cache) = value.cache {
-            init.cache(cache.into());
+            init.set_cache(cache.into());
         }
 
         if let Some(credentials) = value.credentials {
-            init.credentials(credentials.into());
+            init.set_credentials(credentials.into());
         }
 
         if let Some(ref integrity) = value.integrity {
-            init.integrity(integrity);
+            init.set_integrity(integrity);
         }
 
         if let Some(mode) = value.mode {
-            init.mode(mode.into());
+            init.set_mode(mode.into());
         }
 
         if let Some(redirect) = value.redirect {
-            init.redirect(redirect.into());
+            init.set_redirect(redirect.into());
         }
 
         if let Some(ref referrer) = value.referrer {
-            init.referrer(referrer);
+            init.set_referrer(referrer);
         }
 
         if let Some(referrer_policy) = value.referrer_policy {
-            init.referrer_policy(referrer_policy.into());
+            init.set_referrer_policy(referrer_policy.into());
         }
 
         if let Some(signal) = value.signal {
-            init.signal(Some(&signal));
+            init.set_signal(Some(&signal));
         }
 
         init
