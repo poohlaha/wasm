@@ -1,6 +1,6 @@
 use crate::client::fetch::fetch;
 use crate::request::HttpRequest;
-use crate::{log, Error, HttpRequestOptions, HttpRequestType, HttpResponseOptions, TIMEOUT};
+use crate::{Error, HttpRequestOptions, HttpRequestType, HttpResponseOptions, TIMEOUT};
 use http::header::CONTENT_TYPE;
 use http::response::Builder;
 use http::Response;
@@ -107,7 +107,7 @@ impl Call {
             }
         }
 
-        log(&format!("wasm request headers: {:#?}", print_headers));
+        // log(&format!("wasm request headers: {:#?}", print_headers));
         Ok(new_headers)
     }
 

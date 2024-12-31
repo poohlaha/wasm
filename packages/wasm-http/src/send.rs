@@ -6,7 +6,7 @@ use crate::request::mode::Mode;
 use crate::request::redirect::Redirect;
 use crate::request::referrer_policy::ReferrerPolicy;
 use crate::request::HttpRequest;
-use crate::{log, HttpRequestOptions};
+use crate::{HttpRequestOptions};
 use http::Request;
 use js_sys::{JsString, Number, Object};
 use serde_json::Value;
@@ -251,7 +251,12 @@ impl HttpClient {
                     if val.is_infinite() || val.is_nan() || val.abs() > Number::MAX_SAFE_INTEGER {
                         Value::String(num.to_string())
                     } else {
-                        Value::Number(num)
+                        if val == 0.0 {
+                            // 0 单独处理
+                            Value::String("0".to_string())
+                        } else {
+                            Value::Number(num)
+                        }
                     }
                 } else {
                     Value::Number(num)
