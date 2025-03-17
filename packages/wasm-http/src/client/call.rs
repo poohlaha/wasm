@@ -8,7 +8,7 @@ use js_sys::{Array, Object, Uint8Array, JSON};
 use std::collections::HashMap;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Blob, BlobPropertyBag, FormData, Headers, RequestCredentials, RequestInit};
+use web_sys::{Blob, BlobPropertyBag, FormData, Headers, RequestCredentials, RequestInit, UrlSearchParams};
 
 pub struct Call;
 
@@ -137,13 +137,36 @@ impl Call {
         let request_type = &options.request_type;
         if let Some(request_type) = request_type {
             match request_type {
-                // form 表单提交
-                HttpRequestType::FormSubmit => {
+                // Blob
+                HttpRequestType::Blob => {
                     if let Some(value) = options.data.clone() {
                         let uint8_array = Uint8Array::new(&value);
-                        let blob = Blob::new_with_u8_array_sequence_and_options(&js_sys::Array::of1(&uint8_array), &BlobPropertyBag::new()).map_err(Error::js_error)?;
+                        let blob = Blob::new_with_u8_array_sequence_and_options(&Array::of1(&uint8_array), &BlobPropertyBag::new()).map_err(Error::js_error)?;
                         data = JsValue::from(blob);
                     }
+                }
+                // form 表单提交
+                HttpRequestType::FormSubmit => {
+                    let mut str: String = String::new();
+                    if let Some(value) = options.data.clone() {
+                        if let Ok(params) = value.dyn_into::<UrlSearchParams>() {
+                            let entries = params.entries();
+                            let mut pairs = vec![];
+
+                            for entry in entries {
+                                let entry = entry.map_err(Error::js_error)?;
+                                if let Ok(array) = entry.dyn_into::<Array>() {
+                                    let key = array.get(0).as_string().unwrap_or_default();
+                                    let value = array.get(1).as_string().unwrap_or_default();
+                                    pairs.push(format!("{}={}", key, value));
+                                }
+                            }
+
+                            str = pairs.join("&");
+                        }
+                    }
+
+                    data = JsValue::from_str(&str)
                 }
                 // formData 提交
                 HttpRequestType::FormData => {
